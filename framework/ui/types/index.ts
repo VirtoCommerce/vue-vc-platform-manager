@@ -17,6 +17,7 @@ declare module "@vue/runtime-core" {
     VcLabel: (typeof VcShellComponents)["VcLabel"];
     VcLink: (typeof VcShellComponents)["VcLink"];
     VcLoading: (typeof VcShellComponents)["VcLoading"];
+    VcMultilanguage: (typeof VcShellComponents)["VcMultilanguage"];
     VcProgress: (typeof VcShellComponents)["VcProgress"];
     VcRow: (typeof VcShellComponents)["VcRow"];
     VcStatus: (typeof VcShellComponents)["VcStatus"];

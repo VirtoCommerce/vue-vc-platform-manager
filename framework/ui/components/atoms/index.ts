@@ -11,6 +11,7 @@ export * from "./vc-image";
 export * from "./vc-label";
 export * from "./vc-link";
 export * from "./vc-loading";
+export * from "./vc-multilanguage";
 export * from "./vc-progress";
 export * from "./vc-row";
 export * from "./vc-status";

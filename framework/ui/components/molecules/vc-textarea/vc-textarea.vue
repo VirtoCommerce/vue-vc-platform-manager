@@ -1,10 +1,15 @@
 <template>
   <div
     class="vc-textarea"
-    :class="{
-      'vc-textarea_error': errorMessage,
-      'vc-textarea_disabled': disabled,
-    }"
+    :class="[
+      `vc-textarea`,
+      {
+        'vc-textarea_clearable': clearable,
+        'vc-textarea_error': error,
+        'vc-textarea_disabled': disabled,
+        'tw-pb-[20px]': error || hint,
+      },
+    ]"
   >
     <!-- Textarea label -->
     <VcLabel
@@ -16,31 +21,123 @@
       <template
         v-if="tooltip"
         #tooltip
+        >{{ tooltip }}</template
       >
-        <span v-html="tooltip"></span>
-      </template>
     </VcLabel>
 
-    <!-- Textarea field -->
-    <div class="vc-textarea__field-wrapper">
-      <textarea
-        class="vc-textarea__field"
-        :placeholder="placeholder"
-        :value="modelValue"
-        :disabled="disabled"
-        :maxlength="maxchars"
-        @input="onInput"
-      ></textarea>
-    </div>
+    <div class="tw-flex tw-flex-nowrap tw-items-start">
+      <div class="tw-relative tw-flex tw-flex-auto tw-text-left">
+        <div
+          v-if="$slots['prepend']"
+          class="tw-flex tw-items-center tw-flex-nowrap tw-pr-3"
+        >
+          <slot name="prepend"></slot>
+        </div>
+        <div class="tw-flex tw-flex-col tw-flex-nowrap tw-flex-auto tw-relative">
+          <div class="vc-textarea__field-wrapper">
+            <div class="tw-flex tw-flex-nowrap tw-flex-auto tw-h-full">
+              <div
+                v-if="$slots['prepend-inner']"
+                class="tw-flex tw-items-center tw-flex-nowrap tw-pr-3"
+              >
+                <slot name="prepend-inner"></slot>
+              </div>
+              <div class="vc-textarea__field">
+                <div
+                  v-if="prefix"
+                  class="tw-flex tw-items-center tw-flex-wrap tw-pr-3 tw-pointer-events-none"
+                >
+                  {{ prefix }}
+                </div>
+                <slot
+                  name="control"
+                  :editable="disabled"
+                  :focused="autofocus"
+                  :placeholder="placeholder"
+                >
+                  <textarea
+                    ref="textareaRef"
+                    :placeholder="placeholder"
+                    :disabled="disabled"
+                    :name="name"
+                    :maxlength="maxlength"
+                    :autofocus="autofocus"
+                    class="vc-textarea__textarea"
+                    @textarea="onTextarea"
+                  />
+                </slot>
+                <div
+                  v-if="suffix"
+                  class="tw-flex tw-items-center tw-flex-wrap tw-pl-3 tw-pointer-events-none"
+                >
+                  {{ suffix }}
+                </div>
+                <div
+                  v-if="clearable && modelValue && !disabled"
+                  class="vc-textarea__clear"
+                >
+                  <VcIcon
+                    size="s"
+                    icon="fas fa-times"
+                  ></VcIcon>
+                </div>
+              </div>
 
-    <slot
-      v-if="errorMessage"
-      name="error"
-    >
-      <VcHint class="vc-textarea__error">
-        {{ errorMessage }}
-      </VcHint>
-    </slot>
+              <div
+                v-if="$slots['append-inner']"
+                class="tw-flex tw-items-center tw-flex-nowrap tw-pl-3"
+              >
+                <slot name="append-inner"></slot>
+              </div>
+              <div
+                v-if="loading"
+                class="tw-flex tw-items-center tw-flex-nowrap tw-pl-3"
+              >
+                <VcIcon
+                  icon="fas fa-spinner tw-animate-spin"
+                  class="tw-text-[var(--textarea-clear-color)]"
+                  size="m"
+                ></VcIcon>
+              </div>
+            </div>
+          </div>
+          <div class="tw-absolute tw-translate-y-full tw-left-0 tw-right-0 tw-bottom-0 tw-min-h-[20px]">
+            <Transition
+              name="slide-up"
+              mode="out-in"
+            >
+              <div v-if="error">
+                <slot name="error">
+                  <VcHint
+                    v-if="errorMessage"
+                    class="vc-textarea__error"
+                  >
+                    {{ errorMessage }}
+                  </VcHint>
+                </slot>
+              </div>
+              <div v-else>
+                <slot name="hint">
+                  <VcHint
+                    v-if="hint"
+                    class="vc-textarea__desc"
+                  >
+                    {{ hint }}
+                  </VcHint>
+                </slot>
+              </div>
+            </Transition>
+          </div>
+        </div>
+
+        <div
+          v-if="$slots['append']"
+          class="tw-flex tw-items-center tw-flex-nowrap tw-pl-3"
+        >
+          <slot name="append"></slot>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -49,15 +146,76 @@ import { watch } from "vue";
 import { VcHint, VcLabel } from "./../../";
 
 export interface Props {
-  placeholder?: string;
-  modelValue?: string;
-  required?: boolean;
-  disabled?: boolean;
+  /**
+   * Model of the component; Use with a listener for 'update:model-value' event OR use v-model directive
+   */
+  modelValue?: string | null | undefined;
+  /**
+   * Input label text
+   */
   label?: string;
-  tooltip?: string;
+  /**
+   * Input placeholder text
+   */
+  placeholder?: string;
+  /**
+   * Input description (hint) text below input component
+   */
+  hint?: string;
+  /**
+   * Appends clearable icon when a value is set;
+   * When clicked, model becomes null
+   */
+  clearable?: boolean;
+  /**
+   * Prefix
+   */
+  prefix?: string;
+  /**
+   * Suffix
+   */
+  suffix?: string;
+  /**
+   * Used to specify the name of the control; If not specified, it takes the value 'Field'
+   */
   name?: string;
-  maxchars?: string;
+  /**
+   * Signals the user a process is in progress by displaying a spinner
+   */
+  loading?: boolean;
+  /**
+   * Debounce amount (in milliseconds) when updating model
+   */
+  debounce?: string | number;
+  /**
+   * Put component in disabled mode
+   */
+  disabled?: boolean;
+  /**
+   * Focus field on initial component render
+   */
+  autofocus?: boolean;
+  /**
+   * Does field have validation errors?
+   */
+  error?: boolean;
+  /**
+   * Validation error message (gets displayed only if 'error' is set to 'true')
+   */
   errorMessage?: string;
+  /**
+   * Specify a max length of model
+   * Default value: 1024
+   */
+  maxlength?: string | number;
+  /**
+   * Input tooltip information
+   */
+  tooltip?: string;
+  /**
+   * Input required state
+   */
+  required?: boolean;
 }
 
 export interface Emits {
@@ -78,9 +236,9 @@ watch(
   }
 );
 
-// Handle input event to propertly validate value and emit changes
-function onInput(e: Event) {
-  const newValue = (e.target as HTMLInputElement).value;
+// Handle textarea event to propertly validate value and emit changes
+function onTextarea(e: Event) {
+  const newValue = (e.target as HTMLTextAreaElement).value;
   emit("update:modelValue", newValue);
 }
 </script>
@@ -97,7 +255,7 @@ function onInput(e: Event) {
 
 .vc-textarea {
   &__field-wrapper {
-    @apply tw-border tw-border-solid
+    @apply tw-px-3 tw-border tw-border-solid
       tw-border-[color:var(--textarea-border-color)]
       tw-rounded-[var(--textarea-border-radius)]
       tw-box-border
@@ -113,21 +271,25 @@ function onInput(e: Event) {
   }
 
   &__field {
-    @apply tw-w-full tw-resize-y tw-box-border tw-border-none tw-outline-none
-    tw-min-h-[var(--textarea-height)]
-    placeholder:tw-text-[color:var(--textarea-placeholder-color)]
-    tw-px-3 tw-py-2;
+    @apply tw-w-auto tw-min-w-0 tw-max-w-full tw-relative tw-flex tw-flex-row tw-flex-auto tw-flex-nowrap [height:inherit];
 
-    &::-webkit-input-placeholder {
-      @apply tw-text-[color:var(--textarea-placeholder-color)];
-    }
+    textarea {
+      @apply tw-w-full tw-resize-y tw-box-border tw-border-none tw-outline-none
+      tw-min-h-[var(--textarea-height)]
+      placeholder:tw-text-[color:var(--textarea-placeholder-color)]
+      tw-py-2;
 
-    &::-moz-placeholder {
-      @apply tw-text-[color:var(--textarea-placeholder-color)];
-    }
+      &::-webkit-textarea-placeholder {
+        @apply tw-text-[color:var(--textarea-placeholder-color)];
+      }
 
-    &::-ms-placeholder {
-      @apply tw-text-[color:var(--textarea-placeholder-color)];
+      &::-moz-placeholder {
+        @apply tw-text-[color:var(--textarea-placeholder-color)];
+      }
+
+      &::-ms-placeholder {
+        @apply tw-text-[color:var(--textarea-placeholder-color)];
+      }
     }
   }
 

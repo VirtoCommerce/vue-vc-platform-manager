@@ -56,17 +56,20 @@ import { VcLabel, VcHint } from "./../../";
 
 export interface Props {
   placeholder?: string;
-  modelValue?: string | number | Date;
+  modelValue?: string;
   required?: boolean;
   disabled?: boolean;
   label?: string;
   tooltip?: string;
   errorMessage?: string;
   assetsFolder: string;
+  languages?: string[];
+  currentLanguage?: string;
 }
 
 export interface Emits {
-  (event: "update:modelValue", value: string | number | Date | null | undefined): void;
+  (event: "update:modelValue", value: string): void;
+  (event: "update:currentLanguage", value: string): void;
 }
 
 const { getAccessToken } = useUser();
@@ -79,19 +82,27 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 const content = ref();
-const toolbar = [
-  { header: 1 },
-  { header: 2 },
-  "bold",
-  "italic",
-  "underline",
-  "strike",
-  "link",
-  "image",
-  "blockquote",
-  { list: "ordered" },
-  { list: "bullet" },
-];
+const toolbar = {
+  container: [
+    { header: 1 },
+    { header: 2 },
+    "bold",
+    "italic",
+    "underline",
+    "strike",
+    "link",
+    "image",
+    "blockquote",
+    { list: "ordered" },
+    { list: "bullet" },
+    { language: [props.currentLanguage, ...props.languages.filter((language) => language !== props.currentLanguage)] },
+  ],
+  handlers: {
+    language: function (value: string) {
+      emit("update:currentLanguage", value);
+    },
+  },
+};
 
 const modules = {
   name: "imageUploader",
@@ -173,6 +184,17 @@ function isQuillEmpty(value: string) {
       tw-rounded-[calc(var(--editor-scroll-width)/2)]
       tw-overflow-x-hidden
       hover:tw-bg-[color:var(--editor-scroll-color-hover)];
+    }
+  }
+
+  .ql-toolbar {
+    .ql-language {
+      width: 65px;
+
+      .ql-picker-label::before,
+      .ql-picker-item::before {
+        content: attr(data-value);
+      }
     }
   }
 }
